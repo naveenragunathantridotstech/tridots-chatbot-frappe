@@ -32,6 +32,11 @@ class NumpyRetriever(Retriever):
             return
         data = json.loads(self.vectors_path.read_text(encoding="utf-8"))
         self._chunks = data.get("chunks", data)  # support both {"chunks": [...]} and flat arrays
+        if not self._chunks:
+            self._embeddings = np.empty((0, 384), dtype=np.float64)
+            self._norms = np.empty(0, dtype=np.float64)
+            self._loaded = True
+            return
         embeddings_list = [chunk["embedding"] for chunk in self._chunks]
         self._embeddings = np.array(embeddings_list, dtype=np.float64)
         self._norms = np.linalg.norm(self._embeddings, axis=1)
@@ -51,6 +56,9 @@ class NumpyRetriever(Retriever):
 
     def _retrieve_sync(self, query: RetrievalQuery) -> list[RetrievedChunk]:
         self.load()
+
+        if not self._chunks:
+            return []
 
         query_vec = np.array(query.embedding, dtype=np.float64)
         query_norm = np.linalg.norm(query_vec)

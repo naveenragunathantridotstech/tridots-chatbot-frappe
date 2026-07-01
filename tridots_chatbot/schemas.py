@@ -61,6 +61,13 @@ class RetrievedChunk(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
+class RetrievalQuery(BaseModel):
+    text: str
+    embedding: list[float]
+    limit: int = 60
+    score_threshold: float = 0.25
+
+
 class FeedbackRequest(BaseModel):
     session_id: str | None = None
     message_id: str

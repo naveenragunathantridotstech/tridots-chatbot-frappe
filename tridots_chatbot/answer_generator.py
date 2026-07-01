@@ -6,7 +6,7 @@ import json
 import httpx
 
 from tridots_chatbot.schemas import ChatMessage, RetrievedChunk
-from tridots_chatbot.rag import AnswerGenerator, FOLLOWUP_PROMPT, estimate_token_count
+from tridots_chatbot.rag import AnswerGenerator, FOLLOWUP_PROMPT
 from tridots_chatbot.config import get_settings
 
 
