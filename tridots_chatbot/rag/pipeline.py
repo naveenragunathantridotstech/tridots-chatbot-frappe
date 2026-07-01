@@ -180,8 +180,12 @@ def assemble_context(
 
 
 def build_sources(chunks: list[RetrievedChunk]) -> list[ChatSource]:
+    seen: set[str] = set()
     sources: list[ChatSource] = []
-    for chunk in chunks:
+    for chunk in sorted(chunks, key=lambda c: c.score, reverse=True):
+        if chunk.url in seen:
+            continue
+        seen.add(chunk.url)
         excerpt = " ".join(chunk.content.split())
         sources.append(
             ChatSource(

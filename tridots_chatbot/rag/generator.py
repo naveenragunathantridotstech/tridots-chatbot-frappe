@@ -56,7 +56,6 @@ def _build_messages(
 class GroqAnswerGenerator(AnswerGenerator):
     def __init__(self, settings=None) -> None:
         self.settings = settings or get_settings()
-        self.client = httpx.AsyncClient(timeout=60.0)
 
     async def generate(
         self,
@@ -75,35 +74,36 @@ class GroqAnswerGenerator(AnswerGenerator):
         ]
         last_exc = None
 
-        for model in models:
-            config = _get_api_config(self.settings, model)
-            if not config:
-                continue
-            url, headers = config
-            for attempt in range(3):
-                try:
-                    response = await self.client.post(
-                        url,
-                        headers=headers,
-                        json={
-                            "model": model,
-                            "temperature": 0.2,
-                            "max_tokens": 1536,
-                            "messages": _build_messages(system_prompt, conversation_history, user_message),
-                        },
-                    )
-                    response.raise_for_status()
-                    return _extract_content(response.json())
-                except httpx.HTTPStatusError as exc:
-                    last_exc = exc
-                    if exc.response.status_code == 429:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            for model in models:
+                config = _get_api_config(self.settings, model)
+                if not config:
+                    continue
+                url, headers = config
+                for attempt in range(3):
+                    try:
+                        response = await client.post(
+                            url,
+                            headers=headers,
+                            json={
+                                "model": model,
+                                "temperature": 0.2,
+                                "max_tokens": 1536,
+                                "messages": _build_messages(system_prompt, conversation_history, user_message),
+                            },
+                        )
+                        response.raise_for_status()
+                        return _extract_content(response.json())
+                    except httpx.HTTPStatusError as exc:
+                        last_exc = exc
+                        if exc.response.status_code == 429:
+                            await asyncio.sleep(1.0 * (attempt + 1))
+                            continue
+                        break
+                    except httpx.RequestError as exc:
+                        last_exc = exc
                         await asyncio.sleep(1.0 * (attempt + 1))
                         continue
-                    break
-                except httpx.RequestError as exc:
-                    last_exc = exc
-                    await asyncio.sleep(1.0 * (attempt + 1))
-                    continue
         if last_exc:
             raise last_exc
         raise RuntimeError("failed to generate response from any model")
@@ -125,32 +125,33 @@ class GroqAnswerGenerator(AnswerGenerator):
         user_content = f"{context_header}Conversation:\n{formatted}\n\nLast answer:\n{last_answer}"
         last_exc = None
 
-        for model in models:
-            config = _get_api_config(self.settings, model)
-            if not config:
-                continue
-            url, headers = config
-            try:
-                response = await self.client.post(
-                    url,
-                    headers=headers,
-                    json={
-                        "model": model,
-                        "temperature": 0.2,
-                        "max_tokens": 256,
-                        "messages": [
-                            {"role": "system", "content": FOLLOWUP_PROMPT},
-                            {"role": "user", "content": user_content},
-                        ],
-                    },
-                )
-                response.raise_for_status()
-                text = _extract_content(response.json())
-                questions = [q.strip().strip('"').strip("'") for q in text.strip().split("\n") if q.strip()]
-                return [q for q in questions if q.endswith("?")][:3]
-            except (httpx.HTTPStatusError, httpx.RequestError) as e:
-                last_exc = e
-                continue
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            for model in models:
+                config = _get_api_config(self.settings, model)
+                if not config:
+                    continue
+                url, headers = config
+                try:
+                    response = await client.post(
+                        url,
+                        headers=headers,
+                        json={
+                            "model": model,
+                            "temperature": 0.2,
+                            "max_tokens": 256,
+                            "messages": [
+                                {"role": "system", "content": FOLLOWUP_PROMPT},
+                                {"role": "user", "content": user_content},
+                            ],
+                        },
+                    )
+                    response.raise_for_status()
+                    text = _extract_content(response.json())
+                    questions = [q.strip().strip('"').strip("'") for q in text.strip().split("\n") if q.strip()]
+                    return [q for q in questions if q.endswith("?")][:3]
+                except (httpx.HTTPStatusError, httpx.RequestError) as e:
+                    last_exc = e
+                    continue
 
         if last_exc:
             import frappe
@@ -171,46 +172,47 @@ class GroqAnswerGenerator(AnswerGenerator):
             "llama-3.1-8b-instant",
             "llama-3.3-70b-versatile",
         ]
-        for model in models:
-            config = _get_api_config(self.settings, model)
-            if not config:
-                continue
-            url, headers = config
-            for attempt in range(3):
-                try:
-                    async with self.client.stream(
-                        "POST",
-                        url,
-                        headers=headers,
-                        json={
-                            "model": model,
-                            "temperature": 0.2,
-                            "max_tokens": 1536,
-                            "stream": True,
-                            "messages": _build_messages(system_prompt, conversation_history, user_message),
-                        },
-                    ) as response:
-                        if response.status_code == 429:
-                            raise httpx.HTTPStatusError("Rate limit", request=response.request, response=response)
-                        if response.status_code != 200:
-                            await response.aread()
-                            raise httpx.HTTPStatusError(
-                                f"HTTP status error {response.status_code}",
-                                request=response.request,
-                                response=response,
-                            )
-                        async for line in response.aiter_lines():
-                            if not line or not line.startswith("data: "):
-                                continue
-                            payload = line[6:].strip()
-                            if payload == "[DONE]":
-                                break
-                            token = _extract_stream_token(payload)
-                            if token:
-                                yield token
-                        return
-                except (httpx.HTTPStatusError, httpx.RequestError):
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            for model in models:
+                config = _get_api_config(self.settings, model)
+                if not config:
                     continue
+                url, headers = config
+                for attempt in range(3):
+                    try:
+                        async with client.stream(
+                            "POST",
+                            url,
+                            headers=headers,
+                            json={
+                                "model": model,
+                                "temperature": 0.2,
+                                "max_tokens": 1536,
+                                "stream": True,
+                                "messages": _build_messages(system_prompt, conversation_history, user_message),
+                            },
+                        ) as response:
+                            if response.status_code == 429:
+                                raise httpx.HTTPStatusError("Rate limit", request=response.request, response=response)
+                            if response.status_code != 200:
+                                await response.aread()
+                                raise httpx.HTTPStatusError(
+                                    f"HTTP status error {response.status_code}",
+                                    request=response.request,
+                                    response=response,
+                                )
+                            async for line in response.aiter_lines():
+                                if not line or not line.startswith("data: "):
+                                    continue
+                                payload = line[6:].strip()
+                                if payload == "[DONE]":
+                                    break
+                                token = _extract_stream_token(payload)
+                                if token:
+                                    yield token
+                            return
+                    except (httpx.HTTPStatusError, httpx.RequestError):
+                        continue
 
 
 def _extract_content(payload: dict) -> str:

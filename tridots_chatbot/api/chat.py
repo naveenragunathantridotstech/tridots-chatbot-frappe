@@ -121,7 +121,7 @@ def chat():
             rewritten_query=message,
             rewrite_skipped=True,
             retrieved_chunks=[s.model_dump() for s in response.sources],
-            context_tokens=sum(s.get("token_count", 0) for s in response.sources),
+            context_tokens=sum(getattr(s, "token_count", 0) or 0 for s in response.sources),
         )
         log_builder.finalize_output(
             answer=response.answer,
