@@ -4,9 +4,9 @@ import json
 import time
 from typing import Any
 
-from tridots_chatbot.logging_utils import InteractionLogBuilder
-from tridots_chatbot.schemas import ChatMessage
-from tridots_chatbot.rag import build_sources
+from tridots_chatbot.utils.logging import InteractionLogBuilder
+from tridots_chatbot.schemas.models import ChatMessage
+from tridots_chatbot.rag.pipeline import build_sources
 
 
 def merge_latency(
@@ -80,8 +80,8 @@ async def stream_chat_events(
         if logger is not None:
             logger.log(log_builder.build())
     except Exception:
-        import traceback
-        traceback.print_exc()
+        import frappe
+        frappe.log_error(frappe.get_traceback(), "tridots_chatbot.stream")
         yield _sse({"type": "error", "message": "Something went wrong. Please try again."})
 
 

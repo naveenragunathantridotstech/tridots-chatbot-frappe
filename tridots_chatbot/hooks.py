@@ -10,4 +10,4 @@ app_license = "MIT"
 app_include_js = "/assets/tridots_chatbot/js/chat.js"
 app_include_css = "/assets/tridots_chatbot/css/chat.css"
 
-after_migrate = "tridots_chatbot.api.after_migrate"
+after_migrate = "tridots_chatbot.api.chat.after_migrate"

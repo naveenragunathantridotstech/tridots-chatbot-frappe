@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-tridots-chatbot = "tridots_chatbot.cli:main"
+tridots-chatbot = "tridots_chatbot.utils.cli:main"
 
 [tool.setuptools]
 packages = ["tridots_chatbot"]

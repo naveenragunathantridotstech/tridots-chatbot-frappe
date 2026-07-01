@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from tridots_chatbot.schemas import RetrievedChunk
-from tridots_chatbot.rag import Reranker
+from tridots_chatbot.schemas.models import RetrievedChunk
+from tridots_chatbot.rag.protocols import Reranker
 
 
 class FastEmbedReranker(Reranker):

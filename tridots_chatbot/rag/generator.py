@@ -5,8 +5,9 @@ import json
 
 import httpx
 
-from tridots_chatbot.schemas import ChatMessage, RetrievedChunk
-from tridots_chatbot.rag import AnswerGenerator, FOLLOWUP_PROMPT
+from tridots_chatbot.schemas.models import ChatMessage, RetrievedChunk
+from tridots_chatbot.rag.protocols import AnswerGenerator
+from tridots_chatbot.rag.pipeline import FOLLOWUP_PROMPT
 from tridots_chatbot.config import get_settings
 
 
@@ -152,7 +153,8 @@ class GroqAnswerGenerator(AnswerGenerator):
                 continue
 
         if last_exc:
-            print(f"Follow-up generation failed: {last_exc}", flush=True)
+            import frappe
+            frappe.log_error(f"Follow-up generation failed: {last_exc}", "tridots_chatbot.followups")
         return []
 
     async def stream_complete(

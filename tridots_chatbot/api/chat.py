@@ -3,28 +3,19 @@ from __future__ import annotations
 import json
 import time
 import uuid
-from functools import lru_cache
 from typing import Any
 
 import frappe
 from frappe import _
 
-from tridots_chatbot.answer_generator import GroqAnswerGenerator
 from tridots_chatbot.config import get_settings
-from tridots_chatbot.embedder import FastEmbedQueryEmbedder
-from tridots_chatbot.logging_utils import (
-    JsonlInteractionLogger,
-    InteractionLogBuilder,
-    to_plain_dict,
-)
-from tridots_chatbot.rag import (
-    RAGService,
-    build_sources,
-    FALLBACK_ANSWER,
-)
-from tridots_chatbot.retriever import NumpyRetriever
-from tridots_chatbot.schemas import ChatMessage, ChatRequest
-from tridots_chatbot.streaming import merge_latency
+from tridots_chatbot.schemas.models import ChatMessage, ChatRequest
+from tridots_chatbot.rag.embedder import FastEmbedQueryEmbedder
+from tridots_chatbot.rag.retriever import NumpyRetriever
+from tridots_chatbot.rag.generator import GroqAnswerGenerator
+from tridots_chatbot.rag.pipeline import RAGService, build_sources, FALLBACK_ANSWER
+from tridots_chatbot.rag.streaming import merge_latency
+from tridots_chatbot.utils.logging import JsonlInteractionLogger, InteractionLogBuilder, to_plain_dict
 
 
 _BACKEND_CACHE: dict[str, Any] = {}
@@ -139,7 +130,6 @@ def chat():
         log_builder.set_latency(latency)
         _get_logger().log(log_builder.build())
 
-        # generate follow-ups
         suggested_questions: list[str] = []
         try:
             async def _gen_followups():
@@ -150,8 +140,7 @@ def chat():
                 )
             suggested_questions = asyncio.run(_gen_followups())
         except Exception:
-            import traceback
-            traceback.print_exc()
+            frappe.log_error(frappe.get_traceback(), "tridots_chatbot.followups")
 
         return {
             "answer": response.answer,
@@ -162,8 +151,7 @@ def chat():
             "latency_ms": latency,
         }
     except Exception:
-        import traceback
-        traceback.print_exc()
+        frappe.log_error(frappe.get_traceback(), "tridots_chatbot.chat")
         frappe.local.response["http_status_code"] = 500
         return {"error": "Something went wrong. Please try again."}
 

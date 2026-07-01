@@ -8,8 +8,8 @@ from typing import Any
 
 import numpy as np
 
-from tridots_chatbot.schemas import RetrievedChunk, RetrievalQuery
-from tridots_chatbot.rag import Retriever
+from tridots_chatbot.schemas.models import RetrievedChunk
+from tridots_chatbot.rag.protocols import Retriever, RetrievalQuery
 
 
 STOP_WORDS = {
@@ -31,7 +31,7 @@ class NumpyRetriever(Retriever):
         if self._loaded:
             return
         data = json.loads(self.vectors_path.read_text(encoding="utf-8"))
-        self._chunks = data.get("chunks", data)  # support both {"chunks": [...]} and flat arrays
+        self._chunks = data.get("chunks", data)
         if not self._chunks:
             self._embeddings = np.empty((0, 384), dtype=np.float64)
             self._norms = np.empty(0, dtype=np.float64)

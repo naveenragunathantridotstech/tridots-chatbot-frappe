@@ -3,17 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import ceil
 from time import perf_counter
-from typing import Protocol
 
-from tridots_chatbot.schemas import (
-    ChatMessage,
-    ChatRequest,
-    ChatResponse,
-    ChatSource,
-    LatencyBreakdown,
-    RetrievedChunk,
-    RetrievalQuery,
-)
+from tridots_chatbot.schemas.models import ChatMessage, ChatRequest, ChatResponse, ChatSource, LatencyBreakdown, RetrievedChunk, RetrievalQuery
+from tridots_chatbot.rag.protocols import AnswerGenerator, QueryEmbedder, QueryRewriter, Reranker, Retriever
+
 
 SYSTEM_PROMPT_TEMPLATE = """You are an expert assistant for Tridots Tech, a Frappe Gold Partner and software development company based in Chennai, India.
 
@@ -100,28 +93,6 @@ QUERY_REWRITE_PROMPT = """Given the conversation below, rewrite the LAST user me
 FALLBACK_ANSWER = "I don't have that information — please contact us at contact@tridotstech.com"
 
 
-class QueryRewriter(Protocol):
-    async def rewrite(
-        self,
-        *,
-        prompt: str,
-        conversation_history: list[ChatMessage],
-        latest_message: str,
-    ) -> str: ...
-
-
-class QueryEmbedder(Protocol):
-    async def embed(self, text: str) -> list[float]: ...
-
-
-class Retriever(Protocol):
-    async def retrieve(self, query: RetrievalQuery) -> list[RetrievedChunk]: ...
-
-
-class Reranker(Protocol):
-    async def rerank(self, query: str, chunks: list[RetrievedChunk]) -> list[RetrievedChunk]: ...
-
-
 FOLLOWUP_PROMPT = """Based on the conversation, the assistant's last answer, and the provided context documents, suggest 3 short follow-up questions the user might want to ask next.
 
 Requirements:
@@ -130,25 +101,6 @@ Requirements:
 - Each question must be a natural standalone question (no numbering, no quotes, no bullet points).
 - Return exactly one question per line, no empty lines.
 - Do NOT include any explanation or prefix, and do not use emojis. """
-
-
-class AnswerGenerator(Protocol):
-    async def generate(
-        self,
-        *,
-        system_prompt: str,
-        user_message: str,
-        conversation_history: list[ChatMessage],
-        sources: list[RetrievedChunk],
-    ) -> str: ...
-
-    async def generate_followups(
-        self,
-        *,
-        conversation_history: list[ChatMessage],
-        last_answer: str,
-        context_text: str | None = None,
-    ) -> list[str]: ...
 
 
 @dataclass(slots=True)

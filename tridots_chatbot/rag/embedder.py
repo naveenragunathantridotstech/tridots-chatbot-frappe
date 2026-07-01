@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from tridots_chatbot.rag import QueryEmbedder
+from tridots_chatbot.rag.protocols import QueryEmbedder
 
 
 class FastEmbedQueryEmbedder(QueryEmbedder):

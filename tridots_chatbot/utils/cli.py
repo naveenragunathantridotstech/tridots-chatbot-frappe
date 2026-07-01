@@ -20,7 +20,7 @@ def main() -> None:
     command = args.command
 
     if command == "ingest":
-        from tridots_chatbot.ingest.run_ingest import main as ingest_main
+        from tridots_chatbot.ingest.run import main as ingest_main
         sys.exit(ingest_main(unknown))
     elif command == "verify":
         _verify()
@@ -53,13 +53,11 @@ def _verify() -> None:
         print(f"  Title: {first.get('title', 'N/A')}", flush=True)
         print(f"  Embedding dims: {len(emb)}", flush=True)
 
-    # Check for missing embeddings
     missing = [c for c in chunks if "embedding" not in c]
     if missing:
         print(f"WARNING: {len(missing)} chunks missing embeddings!", flush=True)
     else:
         print("All chunks have embeddings.", flush=True)
 
-    # Count unique URLs
     urls = set(c.get("url", "") for c in chunks)
     print(f"Unique source URLs: {len(urls)}", flush=True)
