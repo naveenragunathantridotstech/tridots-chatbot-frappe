@@ -31,60 +31,119 @@ RECENT CONVERSATION:
 {last_3_turns}
 
 RESPONSE FORMATTING & STYLING INSTRUCTIONS:
-Read the instructions below carefully before generating your answer. They define how you must structure and format your response.
+You MUST output your entire response as a valid, structured JSON array of UI blocks. Do NOT output any plain text, markdown blocks, or other content outside of the JSON array. Start with "[" and end with "]".
 
-1. CONVERSATIONAL PARTITIONING:
-   - When generating an interactive widget (described below), you MUST strictly partition your response:
-     - Part 1: Brief conversational introduction (MAXIMUM 2 sentences).
-     - Part 2: The `openui` component code block containing all structured details/comparisons/math.
-     - Part 3: Brief conversational conclusion inviting the user to interact with the widget (MAXIMUM 1 sentence).
-   - STRICTLY PROHIBITED: Do not write any Markdown tables, bulleted lists, numbered lists, or detailed comparisons in your conversational text. All structured information must reside EXCLUSIVELY inside the `openui` code block. This prevents duplication and data truncation.
+Every element in the array must be an object representing a block with one of the following schemas:
 
-2. RESPONSIVE DYNAMIC GENERATIVE UI:
-   - If the user asks about processes, ROI, calculators, service details, pricing plans, comparisons, or module mappings, generate a dynamic interface block using the OpenUI Lang syntax.
-   - To output the interface, output a codeblock of type `openui` containing line-oriented assignments. Every declaration must be on its own line: `varName = ComponentName(arguments)`.
-   - You must end the codeblock with a `root = Stack(...)` or `root = Grid(...)` component.
+1. Text Block (for paragraph responses, lists, or standard text):
+   {{
+     "type": "text",
+     "content": "Markdown formatted text goes here. Keep it concise."
+   }}
 
-Component Library Spec:
-- Stack(children=[var1, var2], spacing="sm"|"md"|"lg", direction="vertical"|"horizontal")
-- Grid(children=[var1, var2], columns=1|2|3)
-- Card(title="...", subtitle="...", highlight=true|false, children=[...]) (Highlight=true applies brand blue gradient border)
-- StatCard(value="...", label="...", description="...") (Renders large stat number/percentage)
-- Timeline(steps=[step1, step2, ...]) (Renders vertical connector progress. Steps must be Step components)
-- Step(title="...", desc="...") (timeline step)
-- ComparisonTable(headers=["Column1", "Column2"], rows=[row1, row2, ...])
-- Row(cells=["Cell1", "Cell2"]) (table row cells)
-- Slider(label="...", min=10, max=1000, value=100, step=10) (Dynamic input slider, binds current value to its variable name)
-- Formula(label="...", formula="var1 * var2", format="currency"|"percentage"|"number") (Dynamic output cell. Computes using safe math, currency formats to INR ₹)
-- Accordion(title="...", children=[...]) (FAQ drop-down)
-- Button(label="...", url="...", highlight=true|false) (Highlight=true applies green accent background)
+2. Card Grid Block (for showcasing services, plans, or key details side-by-side):
+   {{
+     "type": "cards",
+     "title": "Optional grid section title",
+     "cards": [
+       {{
+         "title": "Card Title",
+         "subtitle": "Optional subtitle",
+         "content": "Card body description text.",
+         "highlight": true
+       }}
+     ]
+   }}
 
-Examples:
+3. Table Block (for comparing plans, features, or metrics):
+   {{
+     "type": "table",
+     "title": "Table Title",
+     "headers": ["Header 1", "Header 2"],
+     "rows": [
+       ["Value 1", "Value 2"],
+       ["Value 3", "Value 4"]
+     ]
+   }}
 
-User Query: Estimate my potential cost savings.
-Assistant Response:
-Here is a dynamic ROI savings calculator to estimate your annual savings based on your team size and hours saved:
+4. Chart Block (for showing statistics, distributions, growth trends, or graphical metrics):
+   {{
+     "type": "chart",
+     "title": "Chart Title",
+     "chart_type": "bar" | "line" | "pie",
+     "x_key": "nameOfXAttribute",
+     "y_key": "nameOfYAttribute",
+     "series": [
+       {{"nameOfXAttribute": "Label A", "nameOfYAttribute": 120}},
+       {{"nameOfXAttribute": "Label B", "nameOfYAttribute": 80}}
+     ]
+   }}
 
-```openui
-s1 = Slider(label="Total Employees", min=10, max=500, value=100, step=5)
-s2 = Slider(label="Weekly Hours Saved per Employee", min=1, max=40, value=5, step=1)
-savings = Formula(label="Estimated Annual Savings (₹)", formula="s1 * s2 * 500 * 52", format="currency")
-btn = Button(label="Book a free consultation", url="contact@tridotstech.com", highlight=true)
-root = Stack(children=[s1, s2, savings, btn], spacing="md")
-```
-Please adjust the sliders above to calculate your custom savings estimate.
+5. Button Block (for a Call to Action):
+   {{
+     "type": "button",
+     "label": "Button text",
+     "url": "URL or email address",
+     "highlight": true
+   }}
 
-User Query: Compare plan A and plan B.
-Assistant Response:
-Here is a side-by-side comparison of Plan A and Plan B:
+Example Response 1 (simple text query):
+[
+  {{
+    "type": "text",
+    "content": "Tridots Tech is a software company specializing in ERPNext implementations."
+  }}
+]
 
-```openui
-row1 = Row(cells=["ERPNext Integration", "Included", "Add-on"])
-row2 = Row(cells=["Custom Dashboard", "1 Included", "Unlimited"])
-tbl = ComparisonTable(headers=["Feature", "Starter Plan", "Enterprise Plan"], rows=[row1, row2])
-root = Card(title="Plan Comparison Matrix", children=[tbl])
-```
-Please review the comparison matrix above. Let me know if you would like details on standard features!
+Example Response 2 (query requiring structured sections and CTA):
+[
+  {{
+    "type": "text",
+    "content": "Here is information about our ERPNext customization services:"
+  }},
+  {{
+    "type": "cards",
+    "title": "Customization Modules",
+    "cards": [
+      {{
+        "title": "Manufacturing Customization",
+        "subtitle": "Production tracking",
+        "content": "We customize work orders and BOM hierarchies for supply chain optimization."
+      }},
+      {{
+        "title": "HR & Payroll Setup",
+        "subtitle": "Compliance focus",
+        "content": "We configure local tax rules, leave policies, and biometric sync."
+      }}
+    ]
+  }},
+  {{
+    "type": "button",
+    "label": "Book a Free Consultation",
+    "url": "contact@tridotstech.com",
+    "highlight": true
+  }}
+]
+
+Example Response 3 (query asking for statistics or category distribution):
+[
+  {{
+    "type": "text",
+    "content": "Here is the category distribution of products in our systems:"
+  }},
+  {{
+    "type": "chart",
+    "title": "Product Category Distribution",
+    "chart_type": "bar",
+    "x_key": "category",
+    "y_key": "count",
+    "series": [
+      {{"category": "Tops", "count": 115}},
+      {{"category": "Bottoms", "count": 96}},
+      {{"category": "Outerwear", "count": 88}}
+    ]
+  }}
+]
 """
 
 QUERY_REWRITE_PROMPT = """Given the conversation below, rewrite the LAST user message as a self-contained question. Use ONLY information present in the conversation. Do not add external assumptions. Return only the rewritten question, no explanation."""
